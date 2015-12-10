@@ -66,7 +66,7 @@ get_option(Option, Options) ->
 findget(Req) ->
   QueryStringData = Req:parse_qs(),
   Query           = proplists:get_value("query", QueryStringData),
-  Search          = projectx_app:tweet_search(Query),
+  Search          = projectx_app:get_tweets(Query),
   HTMLoutput      = mochijson2:encode(Search),
   %io:format("loop founddata: ~p~n", [FoundData]),
   Req:respond({200, [{"Content-Type", "text/plain"}],

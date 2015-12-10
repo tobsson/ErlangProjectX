@@ -3,7 +3,7 @@
 -behaviour(application).
 
 %% Application callbacks
--export([start/2, stop/1, init/0, tweet_search/1]).
+-export([start/2, stop/1, init/0, get_tweets/1]).
 
 %% ===================================================================
 %% Application callbacks
@@ -19,34 +19,9 @@ stop(_State) ->
 % projectx_app:init()
 init() ->
   ssl:start(),
-  register(tweet, spawn_link(fun loop/0)),
+  %register(tweet, spawn_link(fun loop/0)),
   io:format("spawned process: ~p~n", [whereis(tweet)]).
 
-loop() ->
-  %io:format("loop started ~n"),
-  receive
-    {tweet_search, P, Q} ->
-      spawn(fun () -> get_tweets(P, Q) end),
-      %io:format("loop spawned get_tweets ~n"),
-      loop();
-    {get_tweets_reply, P, A} ->
-      spawn(fun () -> jiffy_decode(P, A) end),
-      %io:format("loop spawned jiffy_decode ~n"),
-     loop();
-    {extracted_list, P, Value} ->
-      spawn(fun () -> extract_text(P, Value, []) end),
-			spawn(fun () -> random_tweets(P, Value, [], 10) end),
-      spawn(fun () -> extract_text_mapreduce(P, Value, []) end),
-      %io:format("loop spawned extract_text~n"),
-       loop();
-		{tweets_random, P, Y} ->
-			P! {random_tweets_list_complete, Y},
-				loop();
-    {extracted_data, P, X} ->
-      P ! {extracted_list_complete, X},
-    loop()
-
-    end.
 
 % This function takes a query and runs it through our filters then returns
 % whatever
@@ -62,62 +37,55 @@ loop() ->
 
 % This function will take the value of 'Query' and perform a search on
 % twitter, returns JSONobjects as they come from Twitter servers
-get_tweets(P, Query) ->
+get_tweets(Query) ->
   % Start ibrowse which we use for our network connections.
   ibrowse:start(),
-
   % Get Bearer token from twitter which we need for Application Auth
   BearerToken = app_auth(),
   %io:format("get_ tweets: BearerToken: ~p~n", [BearerToken]),
-
   URIQuery = http_uri:encode(Query),
-
   % Construct the HTTP request with authentication and search parameters
   HeaderAuth = [{"Authorization","Bearer " ++ BearerToken}],
   URL = string:concat(string:concat(
           "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
-            "&count=100&lang=en"),
+            "&count=20&lang=en"),
 
   % Request sent to Twitter
   {ok,_,_,TweetData} = ibrowse:send_req(URL, HeaderAuth, get),
   %io:format("get_tweets Returns: ~p~n", [TweetData]),
 
-  % Send answer to the server
-  tweet ! {get_tweets_reply, P, TweetData}.
+  Jiffied = jiffy_decode(TweetData),
 
+  Rando = random_tweets(Jiffied, [], 10),
+
+  Self = self(),
+  Pids = [spawn_link(fun() -> Self ! {self(), {X, fact(X)}} end)
+             || X <- lists:seq(1, N) ],
+    [receive {Pid, R} -> R end || Pid <- Pids ].
 
 % Takes a JSON object and makes it more readable.
-jiffy_decode(P, A) ->
+jiffy_decode(A) ->
   TweetDataDecoded = jiffy:decode(A),
   {TDD} = TweetDataDecoded, % extracts list from first tuple
   {_Key, Value} = lists:keyfind(<<"statuses">>, 1, TDD), % extracts the only tuple "statuses" from list
   %io:format("jiffy_decode: ~p~n", [Value]),
-  tweet! {extracted_list, P, Value}.
-
-
-
-
+  Value.
 
 % Chooses 3 random tweets
-	random_tweets(P, Value, Data, 7) -> tweet!{tweets_random, P, Data};
-	random_tweets(P, Value, Data, N) ->
+	random_tweets(Value, Data, 7) -> Data;
+	random_tweets(Value, Data, N) ->
 		{RandomTweet} = lists:nth(random:uniform(N), Value),% random:uniform(N) chooses random number from range 1-N
 		Value1 = lists:delete({RandomTweet}, Value),
 		{KeyUser, ValueUser} = lists:keyfind(<<"user">>, 1, RandomTweet),
 		{VUser} = ValueUser,
 		{KeyName, UserName} = lists:keyfind(<<"name">>, 1, VUser),
 		{RKey, RandomText} = lists:keyfind(<<"text">>, 1, RandomTweet),
-		random_tweets(P, Value, Data ++ [UserName] ++ [RandomText], N-1).
+		random_tweets(Value, Data ++ [UserName] ++ [RandomText], N-1).
 %Loops it (loop should be executed only 3 times) and put usernames and tweets in a loop
 
 
-
-
-
-
-
 % Extracts necessary values from JSON.
-	extract_text(P, [], Data) -> tweet ! {extracted_data, P, Data};
+	extract_text(P, [], Data) -> Data;
 	extract_text(P, Value, Data) ->
 	%Head = lists:nth(8, Value),
   %io:format("extract_text Head: ~p~n", [Head]),
@@ -135,9 +103,9 @@ jiffy_decode(P, A) ->
   extract_text(P, tl(Value), Data ++ [Name] ++ [TValue]). % loop
 
 % Extracts only the fields with "text" from JSON.
-% Data is a proplist
-	extract_text_mapreduce(_P, [], Data) -> io:format("Final Value ~p~n", [Data]);
-	extract_text_mapreduce(P, Value, Data) ->
+% Data is a Binary List
+	extract_text_mapreduce([], Data) -> io:format("Final Value ~p~n", [Data]);
+	extract_text_mapreduce(Value, Data) ->
   % Extracts first tuple from the list Value
   {Head} = hd(Value),
   {_Key, Text} = lists:keyfind(<<"text">>, 1, Head),
