@@ -59,20 +59,6 @@ loop() ->
 			Y
     end.
 
-% This function takes a list of strings, separates each word to a single term
-% and then maps them like {"word", 1}
-% Returns a proplist with the words reduced
-	map(List) ->
-  % Splits a string into a comma separated list
-  X = re:split(List,"[ ]",[{return,list}]),
-  Map = [{string:to_lower(W), 1}|| W <- X],
-  Result = dict:to_list(lists:foldl(fun reduce/2, dict:new(), Map)), ok.
- % io:format("map Result: ~p~n", [Result]).
-
-% Sums the values of a map
-reduce({Key, Value}, Sums) ->
-  % Key, Fun, Initial Value, Dictionary
-  dict:update(Key, fun (Old) -> Old + Value end, Value, Sums).
 
 % This function will take the value of 'Query' and perform a search on
 % twitter, returns JSONobjects as they come from Twitter servers
