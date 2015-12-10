@@ -37,16 +37,20 @@ text_val(Text) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-%Starts couchbeam upon gen_server startup
+%Starts couchbeam upon gen_server startup and establishes a connection to our database for wordlist
 init([]) ->
     couchbeam:start(),
-        {ok, []}.
+        Url = "localhost:5984",
+    Options = [],
+    S = couchbeam:server_connection(Url, Options),  % connect to the server
+    {ok, Db}=couchbeam:open_db(S, "wordlist", Options), % opening the "wordlist" database,
+        {ok, [Db]}. %%Store the connection to Db in State variable
 
 
 %Call from word_val/1 function
 %Replies with pos, neg, neutral score for one word
 handle_call({wordval, Word}, _From, State) ->
-    Points = word_Eval(Word),
+    Points = word_Eval(Word, State),
         {reply, Points, State};
 
 % Call from text_val/1
@@ -54,17 +58,8 @@ handle_call({wordval, Word}, _From, State) ->
 
 handle_call({textval,Text}, From, State) ->
   io:format("The from of it all:~p~n", [From]),
-   spawn(fun() -> text_Eval(Text, From) end),
+   spawn(fun() -> text_Eval(Text, From, State) end),
    {noreply, State}.
-
-   %%Pid = spawn_link(?MODULE,text_Eval,[Text]),
-        %%NewState = save_pid(Pid,Text),
-        %%{reply, Pid, State}.
-        %%Points = text_Eval(Text),
-        %%{reply, Points, State}.
-
-
-
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -96,14 +91,11 @@ code_change(_OldVsn, State, _Extra) ->
 % Function evaluates a word against the "wordlist" document's "words_key_val"-view in CouchDB
 % It makes a connection and evaluates the Word which is sent to the function and return -1, 1 or 0.
 
-  word_Eval(Word) ->
-    Url = "localhost:5984",
-    Options = [],
+  word_Eval(Word, State) ->
     DesignName = "posneg", %The name for the DesignDocument in wordlist-database specifying the view
     ViewName = "words_key_val", % The actual view
-        S = couchbeam:server_connection(Url, Options),  % connect to the server
-    {ok, Db}=couchbeam:open_db(S, "wordlist", Options), % opening the "wordlist" database
-        Options2 = make_Options(Word),
+        [Db] = State, %%Use the connection to Db info which is stored in State
+        Options2 = make_Options(Word), %% Make the query key into right format
     {ok,ViewResults} = couchbeam_view:fetch(Db, {DesignName, ViewName},Options2), % returns rows corresponding to Word sent to function
 
         % Case statement to evaluate if we get a key and value form DB or an empty list(when the word isn't in our wordlist)
@@ -124,11 +116,11 @@ code_change(_OldVsn, State, _Extra) ->
 % And make use of eval_word/1 for each word
 % Function returns a total score for the received Text calculated by the sum of scores for each word in text
 
-  text_Eval(BinList, From) ->
-    Text = [binary_to_list(X) || X <- BinList],
-    %Text = binary:bin_to_list(BinText),
+  text_Eval(BinText, From, State) ->
+    io:format("BinText: ~ts~n", [BinText]),
+    Text = binary:bin_to_list(BinText),
     Tokens = string:tokens(Text, " "), % split by spaces into list
-    PointsList=[word_Eval(N) || N <- Tokens], %Create a list with all scores for each word
+    PointsList=[word_Eval(N, State) || N <- Tokens], %Create a list with all scores for each word
     Total = sum(PointsList),      % summing the list
     io:format("The list of points:~p~n", [PointsList]), % JUST TEST to see what the scores for each words are
       if
