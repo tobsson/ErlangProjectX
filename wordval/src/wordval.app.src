@@ -1,0 +1,12 @@
+{application, wordval,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { wordval_app, []}},
+  {env, []}
+ ]}.

@@ -90,7 +90,7 @@ get_tweets(P, Query) ->
   HeaderAuth = [{"Authorization","Bearer " ++ BearerToken}],
   URL = string:concat(string:concat(
           "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
-            "&count=10&lang=en"),
+            "&count=100&lang=en"),
 
   % Request sent to Twitter
   {ok,_,_,TweetData} = ibrowse:send_req(URL, HeaderAuth, get),
@@ -117,15 +117,15 @@ jiffy_decode(P, A) ->
 	random_tweets(P, Value, Data, N) ->
 		{RandomTweet} = lists:nth(random:uniform(N), Value),% random:uniform(N) chooses random number from range 1-N
 		Value1 = lists:delete({RandomTweet}, Value),
-		{KeyUser, ValueUser} = lists:keyfind(<<"user">>, 1, RandomTweet), 
+		{KeyUser, ValueUser} = lists:keyfind(<<"user">>, 1, RandomTweet),
 		{VUser} = ValueUser,
-		{KeyName, UserName} = lists:keyfind(<<"name">>, 1, VUser), 
-		{RKey, RandomText} = lists:keyfind(<<"text">>, 1, RandomTweet), 
+		{KeyName, UserName} = lists:keyfind(<<"name">>, 1, VUser),
+		{RKey, RandomText} = lists:keyfind(<<"text">>, 1, RandomTweet),
 		random_tweets(P, Value, Data ++ [UserName] ++ [RandomText], N-1).
 %Loops it (loop should be executed only 3 times) and put usernames and tweets in a loop
-	
 
-			
+
+
 
 
 
@@ -139,7 +139,7 @@ jiffy_decode(P, A) ->
   %io:format("extract_text Data: ~p~n", [Data]),
   {Head} = hd(Value), % extracts first tuple from list Value and extracts list from this tuple
  % io:format("extract_text Head: ~p~n", [Head]),
-  
+
   {_TKey1, TValue1} = lists:keyfind(<<"user">>, 1, Head), % extracts tuple "text" from list TLMet
   {TText} = TValue1,
   {_NKey, Name} = lists:keyfind(<<"name">>, 1, TText),
@@ -150,13 +150,14 @@ jiffy_decode(P, A) ->
 
 % Extracts only the fields with "text" from JSON.
 % Data is a proplist
-	extract_text_mapreduce(_P, [], Data) -> map(Data);
+	extract_text_mapreduce(_P, [], Data) -> io:format("Final Value ~p~n", [Data]);
 	extract_text_mapreduce(P, Value, Data) ->
-  % Extracts first tuple from the list Value 
+  % Extracts first tuple from the list Value
   {Head} = hd(Value),
   {_Key, Text} = lists:keyfind(<<"text">>, 1, Head),
-  %io:format("Text: ~p~n", [TValue]),
-  extract_text_mapreduce(P, tl(Value), Data ++ [Text]). % loop
+  %io:format("Text: ~p~n", [Text]),
+  Sentiment = word_server:text_val(Text),
+  extract_text_mapreduce(P, tl(Value), Data ++ [Sentiment]). % loop
 
 % This function returns a Bearer Token from Twitter
 % that's needed for Application Authentication
