@@ -20,7 +20,7 @@ stop(_State) ->
 init() ->
   ssl:start(),
   %register(tweet, spawn_link(fun loop/0)),
-  io:format("spawned process: ~p~n", [whereis(tweet)]).
+  io:format("Initialized projectx_app: ~n").
 
 
 % This function takes a query and runs it through our filters then returns
@@ -48,20 +48,28 @@ get_tweets(Query) ->
   HeaderAuth = [{"Authorization","Bearer " ++ BearerToken}],
   URL = string:concat(string:concat(
           "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
-            "&count=20&lang=en"),
+            "&count=10&lang=en"),
 
   % Request sent to Twitter
   {ok,_,_,TweetData} = ibrowse:send_req(URL, HeaderAuth, get),
   %io:format("get_tweets Returns: ~p~n", [TweetData]),
 
   Jiffied = jiffy_decode(TweetData),
+  spawn(fun () -> extract_text_mapreduce(Jiffied, []) end),
+  %io:format("Sentiment: ~p~n", [Sentiment]),
+
+  %Self = self(),
+  %Pids = [spawn_link(fun() -> Self ! {self(), word_server:text_val(X)} end)
+  %           || X <- Text],
+  %  [receive {Pid, R} -> R end] || Pid <- Pids],
+  %io:format("Sentiment: ~p~n", [Sentiment]),
 
   Rando = random_tweets(Jiffied, [], 10),
+  Rando.
 
-  Self = self(),
-  Pids = [spawn_link(fun() -> Self ! {self(), {X, fact(X)}} end)
-             || X <- lists:seq(1, N) ],
-    [receive {Pid, R} -> R end || Pid <- Pids ].
+  %Text = extract_text_mapreduce(Jiffied, []),
+  %word_server:text_val(X)
+
 
 % Takes a JSON object and makes it more readable.
 jiffy_decode(A) ->
@@ -104,14 +112,21 @@ jiffy_decode(A) ->
 
 % Extracts only the fields with "text" from JSON.
 % Data is a Binary List
-	extract_text_mapreduce([], Data) -> io:format("Final Value ~p~n", [Data]);
-	extract_text_mapreduce(Value, Data) ->
+extract_text_mapreduce([], Data) -> sentiment(Data);
+extract_text_mapreduce(List, Data) ->
   % Extracts first tuple from the list Value
-  {Head} = hd(Value),
+  {Head} = hd(List),
   {_Key, Text} = lists:keyfind(<<"text">>, 1, Head),
   %io:format("Text: ~p~n", [Text]),
-  Sentiment = word_server:text_val(Text),
-  extract_text_mapreduce(P, tl(Value), Data ++ [Sentiment]). % loop
+  extract_text_mapreduce(tl(List), Data ++ [Text]).
+
+sentiment(Data) ->
+  io:format("Sentiment started.~n"),
+  Self = self(),
+  Pids = [spawn_link(fun() -> Self ! {self(), word_server:text_val(X)} end)
+             || X <- Data],
+  Sentiment = [receive {Pid, R} -> R end || Pid <- Pids],
+  io:format("Sentiment ~p~n", [Sentiment]).
 
 % This function returns a Bearer Token from Twitter
 % that's needed for Application Authentication
