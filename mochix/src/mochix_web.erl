@@ -34,7 +34,8 @@ loop(Req, DocRoot) ->
                   % .../findtweets?query=jobs&loc=57.726120,11.942240,10km
                   "findtweets"  -> spawn(fun () -> findget(Req) end);
                   % Get statistics
-                  %"stats"       -> spawn(fun () -> get_stats(Req) end);
+                  % /stats?query=jobs
+                  "stats"       -> spawn(fun () -> get_stats(Req) end);
                   _ ->
                     Req:respond({200, [{"Content-Type", "text/plain"}],
                     "You are doing it wrong!\n"})
@@ -65,24 +66,30 @@ get_option(Option, Options) ->
 
 % Takes a query from an HTTP request and gives back an answer encoded as JSON
 findget(Req) ->
+  % Parse data from the URL
   QueryStringData = Req:parse_qs(),
+  % Find the parameters used for the request
   Query           = proplists:get_value("query", QueryStringData),
   Location        = proplists:get_value("loc", QueryStringData),
+  % Send parameters to another Erlang function that returns twitter data
   Search          = projectx_app:get_tweets(Query, Location),
+  % Encode as JSON Values to display on a webpage
   HTMLoutput      = mochijson2:encode(Search),
-  %io:format("loop founddata: ~p~n", [FoundData]),
   Req:respond({200, [{"Content-Type", "text/plain"}],
                 HTMLoutput}).
 
 % Takes a query from an HTTP request and gives back an answer encoded as JSON
-%get_stats(Req) ->
-  %QueryStringData = Req:parse_qs(),
-  %Query           = proplists:get_value("query", QueryStringData),
-  %Stats           =
-  %HTMLoutput      = mochijson2:encode(Stats),
-  %io:format("loop founddata: ~p~n", [FoundData]),
-  %Req:respond({200, [{"Content-Type", "text/plain"}],
-  %              HTMLoutput}).
+get_stats(Req) ->
+  % Parse data from the URL
+  QueryStringData = Req:parse_qs(),
+  % Find the parameters used for the request
+  Query           = proplists:get_value("query", QueryStringData),
+  % Send parameters to another Erlang function that returns data from our DB
+  Stats           = "not done yet", % call function to get data from DB here
+  % Encode as JSON Values to display on a webpage
+  HTMLoutput      = mochijson2:encode(Stats),
+  Req:respond({200, [{"Content-Type", "text/plain"}],
+              HTMLoutput}).
 
 %%
 %% Tests

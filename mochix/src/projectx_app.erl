@@ -45,9 +45,7 @@ get_tweets(Query, Location) ->
   io:format("rando value set ~n"),
   Sentiment ++ Rando.
 
-
-  %Text = extract_text_mapreduce(Jiffied, []),
-  %word_server:text_val(X)
+% This function
 url_creator(Query, undefined) ->
   URIQuery  = http_uri:encode(Query),
   string:concat(string:concat(
