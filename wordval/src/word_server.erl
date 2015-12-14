@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0, word_val/1,text_val/1]).
+-export([start_link/0, word_val/1,text_val/1, textlist_val/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -33,6 +33,10 @@ word_val(Word) ->
 text_val(Text) ->
     gen_server:call(?SERVER,{textval, Text}).
 
+% Function to evaluate a whole list of several texts
+textlist_val(List) ->
+	gen_server:call(?SERVER,{listval, List}).
+
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
@@ -40,27 +44,33 @@ text_val(Text) ->
 %Starts couchbeam upon gen_server startup and establishes a connection to our database for wordlist
 init([]) ->
     couchbeam:start(),
-        Url = "localhost:5984",
+	Url = "localhost:5984",
     Options = [],
     S = couchbeam:server_connection(Url, Options),  % connect to the server
     {ok, Db}=couchbeam:open_db(S, "wordlist", Options), % opening the "wordlist" database,
-        {ok, [Db]}. %%Store the connection to Db in State variable
+	{ok, [Db]}. %%Store the connection to Db in State variable
 
 
 %Call from word_val/1 function
 %Replies with pos, neg, neutral score for one word
 handle_call({wordval, Word}, _From, State) ->
     Points = word_Eval(Word, State),
-        {reply, Points, State};
+	{reply, Points, State};
 
 % Call from text_val/1
 % Replies with a score for a text, pos, neg or neutral
-
 handle_call({textval,Text}, From, State) ->
-  %io:format("The from of it all:~p~n", [From]),
+  %%io:format("The from of it all:~p~n", [From]),
    spawn(fun() -> text_Eval(Text, From, State) end),
+   {noreply, State};
+   
+% Call from textlist_val/1
+% Replies with a score for a list texts with a list of points  
+handle_call({listval,List}, From, State) ->
+  %%io:format("textlist_val called from:~p~n", [From]),
+   spawn(fun() -> textlist_Eval(List, From, State) end),
    {noreply, State}.
-
+   
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -94,44 +104,75 @@ code_change(_OldVsn, State, _Extra) ->
   word_Eval(Word, State) ->
     DesignName = "posneg", %The name for the DesignDocument in wordlist-database specifying the view
     ViewName = "words_key_val", % The actual view
-        [Db] = State, %%Use the connection to Db info which is stored in State
-        Options2 = make_Options(Word), %% Make the query key into right format
+	[Db] = State, %%Use the connection to Db info which is stored in State
+	Options2 = make_Options(Word), %% Make the query key into right format
     {ok,ViewResults} = couchbeam_view:fetch(Db, {DesignName, ViewName},Options2), % returns rows corresponding to Word sent to function
 
-        % Case statement to evaluate if we get a key and value form DB or an empty list(when the word isn't in our wordlist)
-        % giving a score fomr the value if a key is found in db otherwise it returns "0".
+	% Case statement to evaluate if we get a key and value form DB or an empty list(when the word isn't in our wordlist)
+	% giving a score from the value if a key is found in db otherwise it returns "0".
 
-          case ViewResults of
-            [_] ->
-              {Value}=hd(ViewResults),
-              ValueTuple = lists:keyfind(<<"value">>, 1, Value),
-              {_, X} = ValueTuple,
-              X;
-            []-> 0
+	  case ViewResults of
+	    [_] ->
+	      {Value}=hd(ViewResults),
+	      ValueTuple = lists:keyfind(<<"value">>, 1, Value),
+	      {_, X} = ValueTuple,
+	      X;
+	    []-> 0
 
-          end.
+	  end.
 
 
 % Function to evaluate a whole text, splits the text's words into a list separating by spaces
 % And make use of eval_word/1 for each word
 % Function returns a total score for the received Text calculated by the sum of scores for each word in text
 
-  text_Eval(BinText, From, State) ->
-    %io:format("BinText: ~ts~n", [BinText]),
+%first function used internally with textlist_Eval/3
+  text_Eval(BinText, State) ->
+    %%io:format("BinText from text_Eval/2: ~ts~n", [BinText]),
     Text = binary:bin_to_list(BinText),
     Tokens = string:tokens(Text, " "), % split by spaces into list
     PointsList=[word_Eval(N, State) || N <- Tokens], %Create a list with all scores for each word
     Total = sum(PointsList),      % summing the list
-    %io:format("The list of points:~p~n", [PointsList]), % JUST TEST to see what the scores for each words are
+    %%io:format("The list of points:~p~n", [PointsList]), % JUST TEST to see what the scores for each words are
       if
-       Total == 0 -> gen_server:reply(From, 0),io:format("if run 0:"),0;
-       Total <  0 -> gen_server:reply(From, -1),io:format("if run -1:"),-1;
-       Total >  0 -> gen_server:reply(From, 1),io:format("if run 1:"),1
+       Total == 0 -> 0;
+       Total <  0 -> -1;
+       Total >  0 -> 1
+
+      end.
+
+% Function which runs when you use text_val/1 
+  text_Eval(BinText, From, State) ->
+    %%io:format("BinText from text_Eval/3 ~ts~n", [BinText]),
+    Text = binary:bin_to_list(BinText),
+    Tokens = string:tokens(Text, " "), % split by spaces into list
+    PointsList=[word_Eval(N, State) || N <- Tokens], %Create a list with all scores for each word
+    Total = sum(PointsList),      % summing the list
+    %%io:format("The list of points:~p~n", [PointsList]), % JUST TEST to see what the scores for each words are
+      if
+       Total == 0 -> gen_server:reply(From, 0);
+       Total <  0 -> gen_server:reply(From, -1);
+       Total >  0 -> gen_server:reply(From, 1)
 
       end.
 
 
+%% Function for checking list of texts
+  textlist_Eval(List, From, State) ->
+	TextList =[text_Eval(N, State) || N <- List],	%Create a list with all scores for each text
+    Total = (100/length(TextList)),
+	NeutralList=lists:filter(fun(X) -> X == 0 end, TextList),
+	NegativeList=lists:filter(fun(X) -> X < 0 end, TextList),
+	PositiveList=lists:filter(fun(X) -> X > 0 end, TextList),
+	NeutralReplies = float_to_list((length(NeutralList)* Total),[{decimals,0}]),
+	NegativeReplies = float_to_list((length(NegativeList)* Total),[{decimals,0}]),
+	PositiveReplies = float_to_list((length(PositiveList)* Total),[{decimals,0}]),
+	Result = [{"Neutral: ", NeutralReplies}, {"Negative: ", NegativeReplies}, {"Positive: ", PositiveReplies}],
+	
+	gen_server:reply(From, Result).
 
+	
+ 
 % Simple sum-function to sum the list
 
   sum(L) ->
