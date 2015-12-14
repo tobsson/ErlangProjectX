@@ -31,15 +31,16 @@ loop(Req, DocRoot) ->
                     "Hello world!\n"});
                   % Takes all requests to /findtweets and sends them to
                   % a function.
-                  % .../findtweets?query=hockey
-                  "findtweets" -> spawn(fun () -> findget(Req) end);
+                  % .../findtweets?query=jobs&loc=57.726120,11.942240,10km
+                  "findtweets"  -> spawn(fun () -> findget(Req) end);
+                  % Get statistics
+                  %"stats"       -> spawn(fun () -> get_stats(Req) end);
                   _ ->
                     Req:respond({200, [{"Content-Type", "text/plain"}],
                     "You are doing it wrong!\n"})
                 end;
             'POST' ->
                 case Path of
-                  "findtweets" -> spawn(fun () -> findpost(Req) end);
                     _ ->
                       Req:respond({200, [{"Content-Type", "text/plain"}],
                       "You are doing it wrong!\n"})
@@ -73,19 +74,15 @@ findget(Req) ->
   Req:respond({200, [{"Content-Type", "text/plain"}],
                 HTMLoutput}).
 
-findpost(Req) ->
-  io:format("findpost started ~n"),
-  io:format("findpost Req: ~p~n", [Req]),
-  QueryString = Req:recv_body(),
-  io:format("findpost queryString: ~p~n", [QueryString]),
-  %PostData  = Req:parse_post(),
-  %io:format("findpost postData: ~p~n", [PostData]),
-  Query     = proplists:get_value("query", QueryString),
-  io:format("findpost query: ~p~n", [Query]),
-  Search    = projectx_app:tweet_search(Query),
-  HTMLoutput      = mochijson2:encode(Search),
-  Req:respond({200, [{"Content-Type", "text/plain"}],
-                HTMLoutput}).
+% Takes a query from an HTTP request and gives back an answer encoded as JSON
+%get_stats(Req) ->
+  %QueryStringData = Req:parse_qs(),
+  %Query           = proplists:get_value("query", QueryStringData),
+  %Stats           =
+  %HTMLoutput      = mochijson2:encode(Stats),
+  %io:format("loop founddata: ~p~n", [FoundData]),
+  %Req:respond({200, [{"Content-Type", "text/plain"}],
+  %              HTMLoutput}).
 
 %%
 %% Tests

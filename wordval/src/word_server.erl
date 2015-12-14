@@ -57,7 +57,7 @@ handle_call({wordval, Word}, _From, State) ->
 % Replies with a score for a text, pos, neg or neutral
 
 handle_call({textval,Text}, From, State) ->
-  io:format("The from of it all:~p~n", [From]),
+  %io:format("The from of it all:~p~n", [From]),
    spawn(fun() -> text_Eval(Text, From, State) end),
    {noreply, State}.
 
@@ -117,16 +117,16 @@ code_change(_OldVsn, State, _Extra) ->
 % Function returns a total score for the received Text calculated by the sum of scores for each word in text
 
   text_Eval(BinText, From, State) ->
-    io:format("BinText: ~ts~n", [BinText]),
+    %io:format("BinText: ~ts~n", [BinText]),
     Text = binary:bin_to_list(BinText),
     Tokens = string:tokens(Text, " "), % split by spaces into list
     PointsList=[word_Eval(N, State) || N <- Tokens], %Create a list with all scores for each word
     Total = sum(PointsList),      % summing the list
-    io:format("The list of points:~p~n", [PointsList]), % JUST TEST to see what the scores for each words are
+    %io:format("The list of points:~p~n", [PointsList]), % JUST TEST to see what the scores for each words are
       if
-       Total == 0 -> gen_server:reply(From, 0),0;
-       Total <  0 -> gen_server:reply(From, -1),-1;
-       Total >  0 -> gen_server:reply(From, 1),1
+       Total == 0 -> gen_server:reply(From, 0),io:format("if run 0:"),0;
+       Total <  0 -> gen_server:reply(From, -1),io:format("if run -1:"),-1;
+       Total >  0 -> gen_server:reply(From, 1),io:format("if run 1:"),1
 
       end.
 

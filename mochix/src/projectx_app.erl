@@ -3,7 +3,7 @@
 -behaviour(application).
 
 %% Application callbacks
--export([start/2, stop/1, init/0, get_tweets/1]).
+-export([start/2, stop/1, init/0, get_tweets/2]).
 
 %% ===================================================================
 %% Application callbacks
@@ -22,54 +22,43 @@ init() ->
   %register(tweet, spawn_link(fun loop/0)),
   io:format("Initialized projectx_app: ~n").
 
-
-% This function takes a query and runs it through our filters then returns
-% whatever
-	tweet_search(Query) ->
-  tweet ! {tweet_search, self(), Query},
-  receive
-%    {extracted_list_complete, X} ->
-%      X
-		{random_tweets_list_complete, Y} ->
-			Y
-    end.
-
-
 % This function will take the value of 'Query' and perform a search on
 % twitter, returns JSONobjects as they come from Twitter servers
-get_tweets(Query) ->
+get_tweets(Query, Location) ->
   % Start ibrowse which we use for our network connections.
   ibrowse:start(),
   % Get Bearer token from twitter which we need for Application Auth
   BearerToken = app_auth(),
   %io:format("get_ tweets: BearerToken: ~p~n", [BearerToken]),
-  URIQuery = http_uri:encode(Query),
   % Construct the HTTP request with authentication and search parameters
   HeaderAuth = [{"Authorization","Bearer " ++ BearerToken}],
-  URL = string:concat(string:concat(
-          "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
-            "&count=10&lang=en"),
+  URL = url_creator(Query, Location),
 
   % Request sent to Twitter
   {ok,_,_,TweetData} = ibrowse:send_req(URL, HeaderAuth, get),
   %io:format("get_tweets Returns: ~p~n", [TweetData]),
 
   Jiffied = jiffy_decode(TweetData),
-  spawn(fun () -> extract_text_mapreduce(Jiffied, []) end),
-  %io:format("Sentiment: ~p~n", [Sentiment]),
-
-  %Self = self(),
-  %Pids = [spawn_link(fun() -> Self ! {self(), word_server:text_val(X)} end)
-  %           || X <- Text],
-  %  [receive {Pid, R} -> R end] || Pid <- Pids],
-  %io:format("Sentiment: ~p~n", [Sentiment]),
-
+  Sentiment = extract_only_text(Jiffied, []),
+  io:format("sentiment set ~n"),
   Rando = random_tweets(Jiffied, [], 10),
-  Rando.
+  io:format("rando value set ~n"),
+  Sentiment ++ Rando.
+
 
   %Text = extract_text_mapreduce(Jiffied, []),
   %word_server:text_val(X)
-
+url_creator(Query, undefined) ->
+  URIQuery  = http_uri:encode(Query),
+  string:concat(string:concat(
+          "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
+            "&count=15&lang=en&result_type=recent");
+url_creator(Query, Location) ->
+  URIQuery  = http_uri:encode(Query),
+  io:format("url_creator Location: ~p~n", [Location]),
+  string:concat(string:concat(string:concat(
+          "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
+            "&count=15&lang=en&result_type=recent&geocode="), Location).
 
 % Takes a JSON object and makes it more readable.
 jiffy_decode(A) ->
@@ -92,41 +81,40 @@ jiffy_decode(A) ->
 %Loops it (loop should be executed only 3 times) and put usernames and tweets in a loop
 
 
-% Extracts necessary values from JSON.
-	extract_text(P, [], Data) -> Data;
-	extract_text(P, Value, Data) ->
-	%Head = lists:nth(8, Value),
-  %io:format("extract_text Head: ~p~n", [Head]),
-  %io:format("extract_text Value: ~p~n", [Value]),
-  %io:format("extract_text Data: ~p~n", [Data]),
-  {Head} = hd(Value), % extracts first tuple from list Value and extracts list from this tuple
- % io:format("extract_text Head: ~p~n", [Head]),
-
-  {_TKey1, TValue1} = lists:keyfind(<<"user">>, 1, Head), % extracts tuple "text" from list TLMet
-  {TText} = TValue1,
-  {_NKey, Name} = lists:keyfind(<<"name">>, 1, TText),
-  %io:format("User name: ~p~n", [Name]),
-  {_TKey, TValue} = lists:keyfind(<<"text">>, 1, Head),
-  %io:format("Text: ~p~n", [TValue]),
-  extract_text(P, tl(Value), Data ++ [Name] ++ [TValue]). % loop
-
 % Extracts only the fields with "text" from JSON.
 % Data is a Binary List
-extract_text_mapreduce([], Data) -> sentiment(Data);
-extract_text_mapreduce(List, Data) ->
+extract_only_text([], Data) -> Data;
+extract_only_text(List, Data) ->
   % Extracts first tuple from the list Value
   {Head} = hd(List),
   {_Key, Text} = lists:keyfind(<<"text">>, 1, Head),
   %io:format("Text: ~p~n", [Text]),
-  extract_text_mapreduce(tl(List), Data ++ [Text]).
+  Sentiment = word_server:text_val(Text),
+  extract_only_text(tl(List), Data ++ [Sentiment]).
 
 sentiment(Data) ->
-  io:format("Sentiment started.~n"),
-  Self = self(),
-  Pids = [spawn_link(fun() -> Self ! {self(), word_server:text_val(X)} end)
+  io:format("Sentiment started. ~p~n", [Data]),
+  Pids = [spawn(fun() -> collect_sentiment(self(), X) end)
              || X <- Data],
-  Sentiment = [receive {Pid, R} -> R end || Pid <- Pids],
-  io:format("Sentiment ~p~n", [Sentiment]).
+  io:format("Sentiment started PIDS: ~p~n", [Pids]),
+  Result = [rec_sentiment(P) || P <- Pids].
+  %collect_sentiment(length(Pids), []).
+  %io:format("sentiment set ~n"),
+  %P ! {sentiment_sent, Sentiment}.
+
+%collect_sentiment(0, List) -> io:format("sentiment finished.~n"),List;
+collect_sentiment(P, Data) ->
+  %io:format("collect_sentiment started. ~p~n", []),
+  Sentiment = word_server:text_val(Data),
+  io:format("Sentiment value: ~p~n", [Sentiment]),
+  P ! {sentiment_sent, self(), Sentiment}.
+
+rec_sentiment(P) ->
+  io:format("rec_sentiment started.~n"),
+  receive
+    {sentiment_sent, P, X} -> X
+  end.
+
 
 % This function returns a Bearer Token from Twitter
 % that's needed for Application Authentication
