@@ -63,14 +63,14 @@ handle_call({textval,Text}, From, State) ->
   %%io:format("The from of it all:~p~n", [From]),
    spawn(fun() -> text_Eval(Text, From, State) end),
    {noreply, State};
-   
+
 % Call from textlist_val/1
-% Replies with a score for a list texts with a list of points  
+% Replies with a score for a list texts with a list of points
 handle_call({listval,List}, From, State) ->
   %%io:format("textlist_val called from:~p~n", [From]),
    spawn(fun() -> textlist_Eval(List, From, State) end),
    {noreply, State}.
-   
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -141,7 +141,7 @@ code_change(_OldVsn, State, _Extra) ->
 
       end.
 
-% Function which runs when you use text_val/1 
+% Function which runs when you use text_val/1
   text_Eval(BinText, From, State) ->
     %%io:format("BinText from text_Eval/3 ~ts~n", [BinText]),
     Text = binary:bin_to_list(BinText),
@@ -167,12 +167,15 @@ code_change(_OldVsn, State, _Extra) ->
 	NeutralReplies = float_to_list((length(NeutralList)* Total),[{decimals,0}]),
 	NegativeReplies = float_to_list((length(NegativeList)* Total),[{decimals,0}]),
 	PositiveReplies = float_to_list((length(PositiveList)* Total),[{decimals,0}]),
-	Result = [{"Neutral: ", NeutralReplies}, {"Negative: ", NegativeReplies}, {"Positive: ", PositiveReplies}],
-	
-	gen_server:reply(From, Result).
+	Result = ["Neutral:", NeutralReplies,
+            "Negative:", NegativeReplies,
+            "Positive:", PositiveReplies],
+  BinaryResult = [erlang:list_to_binary(A) || A <- Result],
 
-	
- 
+	gen_server:reply(From, BinaryResult).
+
+
+
 % Simple sum-function to sum the list
 
   sum(L) ->

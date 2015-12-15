@@ -39,10 +39,13 @@ get_tweets(Query, Location) ->
   %io:format("get_tweets Returns: ~p~n", [TweetData]),
 
   Jiffied = jiffy_decode(TweetData),
-  Sentiment = extract_only_text(Jiffied, []),
-  io:format("sentiment set ~n"),
+  io:format("Jiffied done ~n"),
+  AllText = extract_only_text(Jiffied, []),
+  io:format("AllText done ~n"),
+  Sentiment = word_server:textlist_val([<<"trying to do this with a shorter text">>,<<"trying to do this with a shorter text">>]),
+  io:format("sentiment set: ~p~n", [Sentiment]),
   Rando = random_tweets(Jiffied, [], 10),
-  io:format("rando value set ~n"),
+  io:format("rando value set: ~p~n", [Rando]),
   Sentiment ++ Rando.
 
 % This function
@@ -87,8 +90,7 @@ extract_only_text(List, Data) ->
   {Head} = hd(List),
   {_Key, Text} = lists:keyfind(<<"text">>, 1, Head),
   %io:format("Text: ~p~n", [Text]),
-  Sentiment = word_server:text_val(Text),
-  extract_only_text(tl(List), Data ++ [Sentiment]).
+  extract_only_text(tl(List), Data ++ [Text]).
 
 sentiment(Data) ->
   io:format("Sentiment started. ~p~n", [Data]),
