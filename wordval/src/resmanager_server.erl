@@ -70,11 +70,14 @@ code_change(_OldVsn, State, _Extra) ->
 store_result([Word,Neu,Neg,Pos],From,State) ->
 	[Db]=State,
 	Reply = "Result stored in Db",
-    Doc = 	{[{<<"_id">>, <<"Word">>},
-			{<<"Subject">>, <<Word>>},
-			{<<"Neutral Score">>, <<Neu>>},
-			{<<"Negative Score">>, <<Neg>>},
-			{<<"Positive Score">>, <<Pos>>}
-			]},
+	io:format("Subject searched for that is stored is: ~ts~n", [Word]),
+  
+	
+		Doc = {[{<<"_id">>, <<list_to_binary(Word)>>},
+				{<<"Subject">>, list_to_binary(Word)},
+                {<<"Neutral Score">>, list_to_binary(Neu)},
+                {<<"Negative Score">>, list_to_binary(Neg)},
+                {<<"Positive Score">>, list_to_binary(Pos)}
+                ]},
 	couchbeam:save_doc(Db, Doc),
 	gen_server:reply(From, Reply).
