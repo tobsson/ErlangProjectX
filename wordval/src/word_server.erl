@@ -27,15 +27,15 @@ start_link() ->
 
 %Function to evaluate 1 word
 word_val(Word) ->
-    gen_server:call(?SERVER,{wordval, Word}).
+    gen_server:call(?SERVER,{wordval, Word}, infinity).
 
 % Function to evaluate a whole text
 text_val(Text) ->
-    gen_server:call(?SERVER,{textval, Text}).
+    gen_server:call(?SERVER,{textval, Text}, infinity).
 
 % Function to evaluate a whole list of several texts
 textlist_val(List) ->
-	gen_server:call(?SERVER,{listval, List}).
+	gen_server:call(?SERVER,{listval, List}, infinity).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
