@@ -42,13 +42,14 @@ get_tweets(Query, Location) ->
   io:format("Jiffied done ~n"),
   AllText = extract_only_text(Jiffied, []),
   io:format("AllText done ~n"),
-  Sentiment = word_server:textlist_val([<<"trying to do this with a shorter text">>,<<"trying to do this with a shorter text">>]),
+  Sentiment = word_server:textlist_val(AllText),
   io:format("sentiment set: ~p~n", [Sentiment]),
   Rando = random_tweets(Jiffied, [], 10),
   io:format("rando value set: ~p~n", [Rando]),
   Sentiment ++ Rando.
 
-% This function
+% This function creates the URL to query Twitter
+% based on what parameters should be used.
 url_creator(Query, undefined) ->
   URIQuery  = http_uri:encode(Query),
   string:concat(string:concat(

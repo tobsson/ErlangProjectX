@@ -135,8 +135,8 @@ code_change(_OldVsn, State, _Extra) ->
     %%PointsList=[word_Eval(N, State) || N <- Tokens], %Create a list with all scores for each word
 	Pids = [spawn_link(fun () ->Self ! {self(), word_Eval(N, State)} end) || N <- Tokens],
     PointsList = [receive {Pid, R} -> R end || Pid <- Pids ],
-	
-	
+
+
     Total = sum(PointsList),      % summing the list
     %%io:format("The list of points:~p~n", [PointsList]), % JUST TEST to see what the scores for each words are
       if
@@ -146,7 +146,7 @@ code_change(_OldVsn, State, _Extra) ->
 
       end.
 
-% Function which runs when you use text_val/1 
+% Function which runs when you use text_val/1
   text_Eval(BinText, From, State) ->
     Self = self(),
     %%io:format("BinText from text_Eval/3 ~ts~n", [BinText]),
@@ -155,8 +155,8 @@ code_change(_OldVsn, State, _Extra) ->
     %%PointsList=[word_Eval(N, State) || N <- Tokens], %Create a list with all scores for each word
 	Pids = [spawn_link(fun () ->Self ! {self(), word_Eval(N, State)} end) || N <- Tokens],
     PointsList = [receive {Pid, R} -> R end || Pid <- Pids ],
-	
-	
+
+
     Total = sum(PointsList),      % summing the list
     %%io:format("The list of points:~p~n", [PointsList]), % JUST TEST to see what the scores for each words are
       if
@@ -178,7 +178,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Function for calculating percentage of all text's values from a list
 %% Doesnt alway land on 100% !!! YET!!
   list_Eval(List, From) ->
-	
+
 	Total = (100/length(List)),
 	NeutralList=lists:filter(fun(X) -> X == 0 end, List),
 	NegativeList=lists:filter(fun(X) -> X < 0 end, List),
@@ -190,6 +190,7 @@ code_change(_OldVsn, State, _Extra) ->
             "Negative:", NegativeReplies,
             "Positive:", PositiveReplies],
   BinaryResult = [erlang:list_to_binary(A) || A <- Result],
+  io:format("BinaryResult: ~p~n", [BinaryResult]),
 
 	gen_server:reply(From, BinaryResult).
 
