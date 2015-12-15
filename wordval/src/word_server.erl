@@ -179,10 +179,10 @@ code_change(_OldVsn, State, _Extra) ->
 %% Doesnt alway land on 100% !!! YET!!
   list_Eval(List, From) ->
 	
-	Total = (100/length(TextList)),
-	NeutralList=lists:filter(fun(X) -> X == 0 end, TextList),
-	NegativeList=lists:filter(fun(X) -> X < 0 end, TextList),
-	PositiveList=lists:filter(fun(X) -> X > 0 end, TextList),
+	Total = (100/length(List)),
+	NeutralList=lists:filter(fun(X) -> X == 0 end, List),
+	NegativeList=lists:filter(fun(X) -> X < 0 end, List),
+	PositiveList=lists:filter(fun(X) -> X > 0 end, List),
 	NeutralReplies = float_to_list((length(NeutralList)* Total),[{decimals,0}]),
 	NegativeReplies = float_to_list((length(NegativeList)* Total),[{decimals,0}]),
 	PositiveReplies = float_to_list((length(PositiveList)* Total),[{decimals,0}]),
