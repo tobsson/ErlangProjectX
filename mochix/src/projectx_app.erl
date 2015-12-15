@@ -54,13 +54,13 @@ url_creator(Query, undefined) ->
   URIQuery  = http_uri:encode(Query),
   string:concat(string:concat(
           "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
-            "&count=10&lang=en&result_type=recent");
+            "&count=15&lang=en&result_type=recent");
 url_creator(Query, Location) ->
   URIQuery  = http_uri:encode(Query),
   io:format("url_creator Location: ~p~n", [Location]),
   string:concat(string:concat(string:concat(
           "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
-            "&count=10&lang=en&result_type=recent&geocode="), Location).
+            "&count=15&lang=en&result_type=recent&geocode="), Location).
 
 % Takes a JSON object and makes it more readable.
 jiffy_decode(A) ->
