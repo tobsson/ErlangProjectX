@@ -42,24 +42,25 @@ get_tweets(Query, Location) ->
   io:format("Jiffied done ~n"),
   AllText = extract_only_text(Jiffied, []),
   io:format("AllText done ~n"),
-  Sentiment = word_server:textlist_val([<<"trying to do this with a shorter text">>,<<"trying to do this with a shorter text">>]),
+  Sentiment = word_server:textlist_val(AllText),
   io:format("sentiment set: ~p~n", [Sentiment]),
   Rando = random_tweets(Jiffied, [], 10),
   io:format("rando value set: ~p~n", [Rando]),
   Sentiment ++ Rando.
 
-% This function
+% This function creates the URL to query Twitter
+% based on what parameters should be used.
 url_creator(Query, undefined) ->
   URIQuery  = http_uri:encode(Query),
   string:concat(string:concat(
           "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
-            "&count=15&lang=en&result_type=recent");
+            "&count=10&lang=en&result_type=recent");
 url_creator(Query, Location) ->
   URIQuery  = http_uri:encode(Query),
   io:format("url_creator Location: ~p~n", [Location]),
   string:concat(string:concat(string:concat(
           "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
-            "&count=15&lang=en&result_type=recent&geocode="), Location).
+            "&count=10&lang=en&result_type=recent&geocode="), Location).
 
 % Takes a JSON object and makes it more readable.
 jiffy_decode(A) ->
