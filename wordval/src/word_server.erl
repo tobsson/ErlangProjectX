@@ -128,10 +128,15 @@ code_change(_OldVsn, State, _Extra) ->
 
 %first function used internally with textlist_Eval/3
   text_Eval(BinText, State) ->
+    Self = self(),
     %%io:format("BinText from text_Eval/2: ~ts~n", [BinText]),
     Text = binary:bin_to_list(BinText),
     Tokens = string:tokens(Text, " "), % split by spaces into list
-    PointsList=[word_Eval(N, State) || N <- Tokens], %Create a list with all scores for each word
+    %%PointsList=[word_Eval(N, State) || N <- Tokens], %Create a list with all scores for each word
+	Pids = [spawn_link(fun () ->Self ! {self(), word_Eval(N, State)} end) || N <- Tokens],
+    PointsList = [receive {Pid, R} -> R end || Pid <- Pids ],
+	
+	
     Total = sum(PointsList),      % summing the list
     %%io:format("The list of points:~p~n", [PointsList]), % JUST TEST to see what the scores for each words are
       if
@@ -141,12 +146,17 @@ code_change(_OldVsn, State, _Extra) ->
 
       end.
 
-% Function which runs when you use text_val/1
+% Function which runs when you use text_val/1 
   text_Eval(BinText, From, State) ->
+    Self = self(),
     %%io:format("BinText from text_Eval/3 ~ts~n", [BinText]),
     Text = binary:bin_to_list(BinText),
     Tokens = string:tokens(Text, " "), % split by spaces into list
-    PointsList=[word_Eval(N, State) || N <- Tokens], %Create a list with all scores for each word
+    %%PointsList=[word_Eval(N, State) || N <- Tokens], %Create a list with all scores for each word
+	Pids = [spawn_link(fun () ->Self ! {self(), word_Eval(N, State)} end) || N <- Tokens],
+    PointsList = [receive {Pid, R} -> R end || Pid <- Pids ],
+	
+	
     Total = sum(PointsList),      % summing the list
     %%io:format("The list of points:~p~n", [PointsList]), % JUST TEST to see what the scores for each words are
       if
@@ -156,11 +166,20 @@ code_change(_OldVsn, State, _Extra) ->
 
       end.
 
-
 %% Function for checking list of texts
   textlist_Eval(List, From, State) ->
-	TextList =[text_Eval(N, State) || N <- List],	%Create a list with all scores for each text
-    Total = (100/length(TextList)),
+
+	%Create a list with all scores for each text
+    Self = self(),
+	Pids = [spawn_link(fun () ->Self ! {self(), text_Eval(N, State)} end) || N <- List],
+    TextList = [receive {Pid, R} -> R end || Pid <- Pids ],
+    list_Eval(TextList, From).
+
+%% Function for calculating percentage of all text's values from a list
+%% Doesnt alway land on 100% !!! YET!!
+  list_Eval(List, From) ->
+	
+	Total = (100/length(TextList)),
 	NeutralList=lists:filter(fun(X) -> X == 0 end, TextList),
 	NegativeList=lists:filter(fun(X) -> X < 0 end, TextList),
 	PositiveList=lists:filter(fun(X) -> X > 0 end, TextList),
@@ -173,7 +192,6 @@ code_change(_OldVsn, State, _Extra) ->
   BinaryResult = [erlang:list_to_binary(A) || A <- Result],
 
 	gen_server:reply(From, BinaryResult).
-
 
 
 % Simple sum-function to sum the list

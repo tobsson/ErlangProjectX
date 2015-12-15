@@ -12,7 +12,8 @@
 start(_StartType, _StartArgs) ->
     wordval_sup:start_link(),
     couchbeam:start(),
-	word_server:start_link().
+	word_server:start_link(),
+	resmanager_server:start_link().
 
 stop(_State) ->
     ok.
