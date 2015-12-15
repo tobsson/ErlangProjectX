@@ -73,7 +73,7 @@ store_result([Word,Neu,Neg,Pos],From,State) ->
 	io:format("Subject searched for that is stored is: ~ts~n", [Word]),
   
 	
-		Doc = {[{<<"_id">>, <<list_to_binary(Word)>>},
+		Doc = {[{<<"_id">>, list_to_binary(Word)},
 				{<<"Subject">>, list_to_binary(Word)},
                 {<<"Neutral Score">>, list_to_binary(Neu)},
                 {<<"Negative Score">>, list_to_binary(Neg)},
