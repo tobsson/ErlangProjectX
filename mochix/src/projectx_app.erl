@@ -46,7 +46,7 @@ get_tweets(Query, Location) ->
   AllText = extract_only_text(Jiffied, [], 0),
   io:format("AllText done ~n"),
   % Analyze the texts and get a sentiment value back.
-  Sentiment = word_server:textlist_val(AllText),
+  Sentiment = word_server:textlist_val(tl(AllText)),
   io:format("sentiment set: ~p~n", [Sentiment]),
   spawn(fun () -> store(Query, Sentiment) end),
   % Extract 3 random tweets to display. IE in our Android app.
@@ -89,7 +89,7 @@ jiffy_decode(A) ->
 		{VUser} = ValueUser,
 		{KeyName, UserName} = lists:keyfind(<<"name">>, 1, VUser),
 		{RKey, RandomText} = lists:keyfind(<<"text">>, 1, RandomTweet),
-		random_tweets(Value, Data ++ [{1, UserName}] ++ [{1, RandomText}], Count-1, N-1).
+		random_tweets(Value, Data ++ [{N, UserName}] ++ [{N, RandomText}], Count-1, N-1).
 %Loops it (loop should be executed only 3 times) and put usernames and tweets in a loop
 
 %format_tweets([],List, 0)     -> List;

@@ -85,7 +85,7 @@ get_stats(Req) ->
   QueryStringData = Req:parse_qs(),
   % Find the parameters used for the request
   Query           = proplists:get_value("query", QueryStringData),
-  BinaryQuery     = list_to_binary([Query]).
+  BinaryQuery     = list_to_binary([Query]),
   % Send parameters to another Erlang function that returns data from our DB
   Stats           = "not done yet", % call function to get data from DB here
   % Encode as JSON Values to display on a webpage
