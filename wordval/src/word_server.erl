@@ -183,16 +183,16 @@ code_change(_OldVsn, State, _Extra) ->
 	NeutralList=lists:filter(fun(X) -> X == 0 end, List),
 	NegativeList=lists:filter(fun(X) -> X < 0 end, List),
 	PositiveList=lists:filter(fun(X) -> X > 0 end, List),
-	NeutralReplies = float_to_list((length(NeutralList)* Total),[{decimals,0}]),
-	NegativeReplies = float_to_list((length(NegativeList)* Total),[{decimals,0}]),
-	PositiveReplies = float_to_list((length(PositiveList)* Total),[{decimals,0}]),
-	Result = ["Neutral:", NeutralReplies,
-            "Negative:", NegativeReplies,
-            "Positive:", PositiveReplies],
-  BinaryResult = [erlang:list_to_binary(A) || A <- Result],
-  io:format("BinaryResult: ~p~n", [BinaryResult]),
+	NeutralReplies = trunc(length(NeutralList)* Total),
+	NegativeReplies = trunc(length(NegativeList)* Total),
+	PositiveReplies = trunc(length(PositiveList)* Total),
+	Result = [{neutral, NeutralReplies},
+            {negative, NegativeReplies},
+            {positive, PositiveReplies}],
+  %BinaryResult = [erlang:list_to_binary(A) || A <- Result],
+  io:format("Not the BinaryResult: ~p~n", [Result]),
 
-	gen_server:reply(From, BinaryResult).
+	gen_server:reply(From, Result).
 
 
 % Simple sum-function to sum the list

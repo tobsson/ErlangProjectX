@@ -73,8 +73,9 @@ findget(Req) ->
   Location        = proplists:get_value("loc", QueryStringData),
   % Send parameters to another Erlang function that returns twitter data
   Search          = projectx_app:get_tweets(Query, Location),
+  JSONStruct      = {struct, Search},
   % Encode as JSON Values to display on a webpage
-  HTMLoutput      = mochijson2:encode(Search),
+  HTMLoutput      = mochijson2:encode(JSONStruct),
   Req:respond({200, [{"Content-Type", "text/plain"}],
                 HTMLoutput}).
 

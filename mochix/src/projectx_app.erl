@@ -87,7 +87,7 @@ jiffy_decode(A) ->
 		{VUser} = ValueUser,
 		{KeyName, UserName} = lists:keyfind(<<"name">>, 1, VUser),
 		{RKey, RandomText} = lists:keyfind(<<"text">>, 1, RandomTweet),
-		random_tweets(Value, Data ++ [UserName] ++ [RandomText], N-1).
+		random_tweets(Value, Data ++ [{name, UserName}] ++ [{text, RandomText}], N-1).
 %Loops it (loop should be executed only 3 times) and put usernames and tweets in a loop
 
 
