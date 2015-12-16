@@ -57,12 +57,12 @@ get_tweets(Query, Location) ->
 
 % This function creates the URL to query Twitter
 % based on what parameters should be used.
-url_creator(Query, undefined) ->
+url_creator(Query, undefined) -> % Without Location
   URIQuery  = http_uri:encode(Query),
   string:concat(string:concat(
           "https://api.twitter.com/1.1/search/tweets.json?q=",URIQuery),
             "&count=15&lang=en&result_type=recent");
-url_creator(Query, Location) ->
+url_creator(Query, Location) -> % With Location
   URIQuery  = http_uri:encode(Query),
   io:format("url_creator Location: ~p~n", [Location]),
   string:concat(string:concat(string:concat(
@@ -81,14 +81,21 @@ jiffy_decode(A) ->
 % Chooses 3 random tweets
 	random_tweets(Value, Data, 7) -> Data;
 	random_tweets(Value, Data, N) ->
+
 		{RandomTweet} = lists:nth(random:uniform(N), Value),% random:uniform(N) chooses random number from range 1-N
 		Value1 = lists:delete({RandomTweet}, Value),
 		{KeyUser, ValueUser} = lists:keyfind(<<"user">>, 1, RandomTweet),
 		{VUser} = ValueUser,
 		{KeyName, UserName} = lists:keyfind(<<"name">>, 1, VUser),
 		{RKey, RandomText} = lists:keyfind(<<"text">>, 1, RandomTweet),
-		random_tweets(Value, Data ++ [{name, UserName}] ++ [{text, RandomText}], N-1).
+		random_tweets(Value, Data ++ [{1, UserName}] ++ [{1, RandomText}], N-1).
 %Loops it (loop should be executed only 3 times) and put usernames and tweets in a loop
+
+%format_tweets([],List, 0)     -> List;
+%format_tweets(Data, List, N)  ->
+%  Name = ["n1", "n2", "n3"],
+%  Text = ["t1", "t2", "t3"],
+
 
 
 % Extracts only the fields with "text" from JSON.
@@ -100,13 +107,16 @@ extract_only_text(List, Data) ->
   {_Key, Text} = lists:keyfind(<<"text">>, 1, Head),
   extract_only_text(tl(List), Data ++ [Text]).
 
-store(Query, [_,Neu,_,Neg,_,Pos]) ->
-  {Year,Month,Day} = date(),
-  Atoms   = [Year,Month,Day],
+% Structures the data as a binary list and send it for storing in the DB
+store(Query, [{_,Neu},{_,Neg},{_,Pos}]) ->
+  {Year,Month,Day} = date(),  % Todays date
+  Atoms   = [Year,Month,Day,Neu,Neg,Pos],
+  % Cannot use atoms so first they are convereted to a list of strings.
   Strings = [integer_to_list(X) || X <- Atoms] ++ [Query],
+  % Make the list binary
   Binary  = [list_to_binary(Y) || Y <- Strings],
-  List = Binary ++ [Neu] ++ [Neg] ++ [Pos],
-  io:format("List for Storing: ~p~n",[List]).
+  io:format("List for Storing: ~p~n",[Binary]),
+  resmanager_server:store_res(Binary).
 
 
 % This function returns a Bearer Token from Twitter
