@@ -48,6 +48,7 @@ get_tweets(Query, Location) ->
   % Analyze the texts and get a sentiment value back.
   Sentiment = word_server:textlist_val(AllText),
   io:format("sentiment set: ~p~n", [Sentiment]),
+  spawn(fun () -> store(Query, Sentiment) end),
   % Extract 3 random tweets to display. IE in our Android app.
   Rando = random_tweets(Jiffied, [], 10),
   io:format("rando value set: ~p~n", [Rando]),
@@ -98,6 +99,14 @@ extract_only_text(List, Data) ->
   {Head} = hd(List),
   {_Key, Text} = lists:keyfind(<<"text">>, 1, Head),
   extract_only_text(tl(List), Data ++ [Text]).
+
+store(Query, [_,Neu,_,Neg,_,Pos]) ->
+  {Year,Month,Day} = date(),
+  Atoms   = [Year,Month,Day],
+  Strings = [integer_to_list(X) || X <- Atoms] ++ [Query],
+  Binary  = [list_to_binary(Y) || Y <- Strings],
+  List = Binary ++ [Neu] ++ [Neg] ++ [Pos],
+  io:format("List for Storing: ~p~n",[List]).
 
 
 % This function returns a Bearer Token from Twitter
