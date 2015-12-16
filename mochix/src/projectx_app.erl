@@ -43,14 +43,14 @@ get_tweets(Query, Location) ->
   Jiffied = jiffy_decode(TweetData),
   io:format("Jiffied done ~n"),
   % Extract all the tweets text.
-  AllText = extract_only_text(Jiffied, []),
+  AllText = extract_only_text(Jiffied, [], 0),
   io:format("AllText done ~n"),
   % Analyze the texts and get a sentiment value back.
   Sentiment = word_server:textlist_val(AllText),
   io:format("sentiment set: ~p~n", [Sentiment]),
   spawn(fun () -> store(Query, Sentiment) end),
   % Extract 3 random tweets to display. IE in our Android app.
-  Rando = random_tweets(Jiffied, [], 10),
+  Rando = random_tweets(Jiffied, [], hd(AllText), 3),
   io:format("rando value set: ~p~n", [Rando]),
   % Return Sentiment and Random tweets in a list.
   Sentiment ++ Rando.
@@ -79,16 +79,17 @@ jiffy_decode(A) ->
   Value.
 
 % Chooses 3 random tweets
-	random_tweets(Value, Data, 7) -> Data;
-	random_tweets(Value, Data, N) ->
+	random_tweets(Value, Data, 0, N) -> Data;
+	random_tweets(Value, Data, Count, 0) -> Data;
+	random_tweets(Value, Data, Count, N) ->
 
-		{RandomTweet} = lists:nth(random:uniform(N), Value),% random:uniform(N) chooses random number from range 1-N
+		{RandomTweet} = lists:nth(random:uniform(Count), Value),% random:uniform(N) chooses random number from range 1-N
 		Value1 = lists:delete({RandomTweet}, Value),
 		{KeyUser, ValueUser} = lists:keyfind(<<"user">>, 1, RandomTweet),
 		{VUser} = ValueUser,
 		{KeyName, UserName} = lists:keyfind(<<"name">>, 1, VUser),
 		{RKey, RandomText} = lists:keyfind(<<"text">>, 1, RandomTweet),
-		random_tweets(Value, Data ++ [{1, UserName}] ++ [{1, RandomText}], N-1).
+		random_tweets(Value, Data ++ [{1, UserName}] ++ [{1, RandomText}], Count-1, N-1).
 %Loops it (loop should be executed only 3 times) and put usernames and tweets in a loop
 
 %format_tweets([],List, 0)     -> List;
@@ -100,12 +101,12 @@ jiffy_decode(A) ->
 
 % Extracts only the fields with "text" from JSON.
 % List and Data is a Binary List
-extract_only_text([], Data) -> Data;
-extract_only_text(List, Data) ->
+extract_only_text([], Data, Counter) -> [Counter] ++ Data;
+extract_only_text(List, Data, Counter) ->
   % Extracts first tuple from the list Value
   {Head} = hd(List),
   {_Key, Text} = lists:keyfind(<<"text">>, 1, Head),
-  extract_only_text(tl(List), Data ++ [Text]).
+  extract_only_text(tl(List), Data ++ [Text], Counter+1).
 
 % Structures the data as a binary list and send it for storing in the DB
 store(Query, [{_,Neu},{_,Neg},{_,Pos}]) ->
