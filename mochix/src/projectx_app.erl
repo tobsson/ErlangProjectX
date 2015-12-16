@@ -23,7 +23,7 @@ init() ->
   io:format("Initialized projectx_app: ~n").
 
 % This function will take the value of 'Query' and perform a search on
-% twitter, returns JSONobjects as they come from Twitter servers
+% twitter, returns a list with sentiment and 3 random tweets.
 get_tweets(Query, Location) ->
   % Start ibrowse which we use for our network connections.
   ibrowse:start(),
@@ -32,20 +32,27 @@ get_tweets(Query, Location) ->
   %io:format("get_ tweets: BearerToken: ~p~n", [BearerToken]),
   % Construct the HTTP request with authentication and search parameters
   HeaderAuth = [{"Authorization","Bearer " ++ BearerToken}],
+  % Create the URL for Twitter requests.
   URL = url_creator(Query, Location),
 
   % Request sent to Twitter
   {ok,_,_,TweetData} = ibrowse:send_req(URL, HeaderAuth, get),
   %io:format("get_tweets Returns: ~p~n", [TweetData]),
 
+  % Run data through Jiffy to make it easier to handle in Erlang
   Jiffied = jiffy_decode(TweetData),
   io:format("Jiffied done ~n"),
+  % Extract all the tweets text.
   AllText = extract_only_text(Jiffied, []),
   io:format("AllText done ~n"),
+  % Analyze the texts and get a sentiment value back.
   Sentiment = word_server:textlist_val(AllText),
   io:format("sentiment set: ~p~n", [Sentiment]),
+  spawn(fun () -> store(Query, Sentiment) end),
+  % Extract 3 random tweets to display. IE in our Android app.
   Rando = random_tweets(Jiffied, [], 10),
   io:format("rando value set: ~p~n", [Rando]),
+  % Return Sentiment and Random tweets in a list.
   Sentiment ++ Rando.
 
 % This function creates the URL to query Twitter
@@ -66,7 +73,8 @@ url_creator(Query, Location) ->
 jiffy_decode(A) ->
   TweetDataDecoded = jiffy:decode(A),
   {TDD} = TweetDataDecoded, % extracts list from first tuple
-  {_Key, Value} = lists:keyfind(<<"statuses">>, 1, TDD), % extracts the only tuple "statuses" from list
+  % Extracts the only tuple "statuses" from list
+  {_Key, Value} = lists:keyfind(<<"statuses">>, 1, TDD),
   %io:format("jiffy_decode: ~p~n", [Value]),
   Value.
 
@@ -84,37 +92,21 @@ jiffy_decode(A) ->
 
 
 % Extracts only the fields with "text" from JSON.
-% Data is a Binary List
+% List and Data is a Binary List
 extract_only_text([], Data) -> Data;
 extract_only_text(List, Data) ->
   % Extracts first tuple from the list Value
   {Head} = hd(List),
   {_Key, Text} = lists:keyfind(<<"text">>, 1, Head),
-  %io:format("Text: ~p~n", [Text]),
   extract_only_text(tl(List), Data ++ [Text]).
 
-sentiment(Data) ->
-  io:format("Sentiment started. ~p~n", [Data]),
-  Pids = [spawn(fun() -> collect_sentiment(self(), X) end)
-             || X <- Data],
-  io:format("Sentiment started PIDS: ~p~n", [Pids]),
-  Result = [rec_sentiment(P) || P <- Pids].
-  %collect_sentiment(length(Pids), []).
-  %io:format("sentiment set ~n"),
-  %P ! {sentiment_sent, Sentiment}.
-
-%collect_sentiment(0, List) -> io:format("sentiment finished.~n"),List;
-collect_sentiment(P, Data) ->
-  %io:format("collect_sentiment started. ~p~n", []),
-  Sentiment = word_server:text_val(Data),
-  io:format("Sentiment value: ~p~n", [Sentiment]),
-  P ! {sentiment_sent, self(), Sentiment}.
-
-rec_sentiment(P) ->
-  io:format("rec_sentiment started.~n"),
-  receive
-    {sentiment_sent, P, X} -> X
-  end.
+store(Query, [_,Neu,_,Neg,_,Pos]) ->
+  {Year,Month,Day} = date(),
+  Atoms   = [Year,Month,Day],
+  Strings = [integer_to_list(X) || X <- Atoms] ++ [Query],
+  Binary  = [list_to_binary(Y) || Y <- Strings],
+  List = Binary ++ [Neu] ++ [Neg] ++ [Pos],
+  io:format("List for Storing: ~p~n",[List]).
 
 
 % This function returns a Bearer Token from Twitter
@@ -141,7 +133,6 @@ app_auth() ->
 
   % Turn the answer into something more readable
   {TokenDecoded}    = jiffy:decode(TokenAnswer),
-  %io:format("app_auth: BearerAnswer: ~p~n", [TokenDecoded]),
   % Check that it really is a bearer token
   %{_,TokenType}     = lists:keyfind(<<"token_type">>, 1, TokenDecoded),
   % Extract the Token and put it into a list.
