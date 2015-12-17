@@ -70,6 +70,7 @@ findget(Req) ->
   QueryStringData = Req:parse_qs(),
   % Find the parameters used for the request
   Query           = proplists:get_value("query", QueryStringData),
+  io:format("findget Query: ~p~n", [Query]),
   Location        = proplists:get_value("loc", QueryStringData),
   % Send parameters to another Erlang function that returns twitter data
   Search          = projectx_app:get_tweets(Query, Location),

@@ -69,11 +69,11 @@ code_change(_OldVsn, State, _Extra) ->
 
 %%Example of message function will receive:
 %%[<<"2015">>,<<"12">>,<<"16">>,<<"soccer">>,<<"60">>,<<"13">>,<<"27">>]
-store_result([Year,Month,Day,Neu,Neg,Pos,Subject],From,State) ->
+store_result([Year,Month,Day,Subject,Neu,Neg,Pos],From,State) ->
 	[Db]=State,
 	Reply = "Result stored in Db",
 	io:format("Subject searched for that is stored: ~ts~n", [Subject]),
-    	
+
 		Doc = {[{<<"Subject">>, Subject},
                 {<<"Neutral Score">>, Neu},
                 {<<"Negative Score">>, Neg},
@@ -84,7 +84,7 @@ store_result([Year,Month,Day,Neu,Neg,Pos,Subject],From,State) ->
                 ]},
 	couchbeam:save_doc(Db, Doc),
 	gen_server:reply(From, Reply);
-	
+
 store_result([_],From,State) ->
 	Reply = "Request to store in database is invalid",
 	gen_server:reply(From, Reply).
