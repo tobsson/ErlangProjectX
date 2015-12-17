@@ -79,17 +79,17 @@ jiffy_decode(A) ->
   Value.
 
 % Chooses 3 random tweets
-	random_tweets(Value, Data, 0, N) -> Data;
-	random_tweets(Value, Data, Count, 0) -> Data;
+	random_tweets(_Value, Data, 0, _N) -> Data;
+	random_tweets(_Value, Data, _Count, 0) -> Data;
 	random_tweets(Value, Data, Count, N) ->
 
 		{RandomTweet} = lists:nth(random:uniform(Count), Value),% random:uniform(N) chooses random number from range 1-N
 		Value1 = lists:delete({RandomTweet}, Value),
-		{KeyUser, ValueUser} = lists:keyfind(<<"user">>, 1, RandomTweet),
+		{_, ValueUser} = lists:keyfind(<<"user">>, 1, RandomTweet),
 		{VUser} = ValueUser,
-		{KeyName, UserName} = lists:keyfind(<<"name">>, 1, VUser),
-		{RKey, RandomText} = lists:keyfind(<<"text">>, 1, RandomTweet),
-		random_tweets(Value, Data ++ [{N, UserName}] ++ [{N+10, RandomText}], Count-1, N-1).
+		{_, UserName} = lists:keyfind(<<"name">>, 1, VUser),
+		{_, RandomText} = lists:keyfind(<<"text">>, 1, RandomTweet),
+		random_tweets(Value1, Data ++ [{N, UserName}] ++ [{N+10, RandomText}], Count-1, N-1).
 %Loops it (loop should be executed only 3 times) and put usernames and tweets in a loop
 
 %format_tweets([],List, 0)     -> List;
