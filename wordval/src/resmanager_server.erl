@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0, store_res/1]).
+-export([start_link/0, store_res/1, get_res/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -28,7 +28,11 @@ start_link() ->
 %Function to evaluate 1 word, takes a list in the form: [Word,Neutral, Negative, Positive]
 store_res(List) ->
     gen_server:call(?SERVER,{storeres, List},infinity).
-
+	
+%Function to get results stored in DB for a searched subject, takes a a searchterm in the form: <<"searchterm">>
+get_res(Word) ->
+    gen_server:call(?SERVER,{getres, Word},infinity).
+	
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -47,9 +51,12 @@ init([]) ->
 
 handle_call({storeres, List}, From, State) ->
     spawn(fun() -> store_result(List, From, State) end),
-   {noreply, State}.
+   {noreply, State};
 
-   
+handle_call({getres, Word}, From, State) ->
+    spawn(fun() -> get_result(Word,From,State) end),
+	{noreply, State}.
+	
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -67,7 +74,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-%%Example of message function will receive:
+%%Example of message store_result/3 function will receive:
 %%[<<"2015">>,<<"12">>,<<"16">>,<<"soccer">>,<<"60">>,<<"13">>,<<"27">>]
 store_result([Year,Month,Day,Subject,Neu,Neg,Pos],From,State) ->
 	[Db]=State,
@@ -86,5 +93,18 @@ store_result([Year,Month,Day,Subject,Neu,Neg,Pos],From,State) ->
 	gen_server:reply(From, Reply);
 
 store_result([_],From,State) ->
-	Reply = "Request to store in database is invalid",
+	Reply = "Request to store in database is in invalid format",
 	gen_server:reply(From, Reply).
+	
+%%Helper function to make the Options for couchbeam key query
+ make_Options(Word) ->
+  [{key, Word}].	
+	
+get_result(Word,From,State)->
+DesignName = "getstats", %The name for the DesignDocument in reulst-database specifying the design doc
+    ViewName = "stats", % The actual view
+	[Db] = State, %%Use the connection to Db info which is stored in State
+	Options2 = make_Options(Word), %% Make the query key into right format
+    {ok,ViewResults} = couchbeam_view:fetch(Db, {DesignName, ViewName},Options2), % returns rows corresponding to Word sent to function
+    gen_server:reply(From, ViewResults).
+	
