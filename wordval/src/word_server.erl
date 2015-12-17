@@ -42,14 +42,16 @@ textlist_val(List) ->
 %% ------------------------------------------------------------------
 
 %Starts couchbeam upon gen_server startup and establishes a connection to our database for wordlist
-init([]) ->
-    couchbeam:start(),
-	Url = "localhost:5984",
-    Options = [],
-    S = couchbeam:server_connection(Url, Options),  % connect to the server
-    {ok, Db}=couchbeam:open_db(S, "wordlist", Options), % opening the "wordlist" database,
-	{ok, [Db]}. %%Store the connection to Db in State variable
-
+init([]) -> 
+%	couchbeam:start(),
+%	Url = "localhost:5984",
+%	Options = [],
+%	S = couchbeam:server_connection(Url, Options),  % connect to the server
+%	{ok, Db}=couchbeam:open_db(S, "wordlist", Options), % opening the "wordlist" database,
+%	{ok, [Db]}. %%Store the connection to Db in State variable
+	
+%	io:format("Initialized word_server: ~n").
+	{ok, { {one_for_one, 5, 10}, []} }.
 
 %Call from word_val/1 function
 %Replies with pos, neg, neutral score for one word
@@ -102,12 +104,15 @@ code_change(_OldVsn, State, _Extra) ->
 % It makes a connection and evaluates the Word which is sent to the function and return -1, 1 or 0.
 
   word_Eval(Word, State) ->
-    DesignName = "posneg", %The name for the DesignDocument in wordlist-database specifying the view
-    ViewName = "words_key_val", % The actual view
-	[Db] = State, %%Use the connection to Db info which is stored in State
-	Options2 = make_Options(Word), %% Make the query key into right format
-    {ok,ViewResults} = couchbeam_view:fetch(Db, {DesignName, ViewName},Options2), % returns rows corresponding to Word sent to function
-
+%	DesignName = "posneg", %The name for the DesignDocument in wordlist-database specifying the view
+%	ViewName = "words_key_val", % The actual view
+%	[Db] = State, %%Use the connection to Db info which is stored in State
+%	Options2 = make_Options(Word), %% Make the query key into right format
+%	{ok,ViewResults} = couchbeam_view:fetch(Db, {DesignName, ViewName},Options2), % returns rows corresponding to Word sent to function
+	
+	ViewResults = resmanager_server:get_wordscore(Word),
+	
+	
 	% Case statement to evaluate if we get a key and value form DB or an empty list(when the word isn't in our wordlist)
 	% giving a score from the value if a key is found in db otherwise it returns "0".
 
