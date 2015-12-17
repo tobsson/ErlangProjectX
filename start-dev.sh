@@ -7,4 +7,6 @@ exec erl \
     -boot start_sasl \
     -sname mochix_dev \
     -s mochix \
-    -s reloader
+    -s reloader \
+    -s projectx_app init \
+    -s wordval_app init
