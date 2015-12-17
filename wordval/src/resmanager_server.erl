@@ -8,7 +8,7 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/0, store_res/1]).
+-export([start_link/0, store_res/1, get_res/1]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
