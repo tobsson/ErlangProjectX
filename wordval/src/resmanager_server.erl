@@ -28,16 +28,16 @@ start_link() ->
 %Function to evaluate 1 word, takes a list in the form: [Word,Neutral, Negative, Positive]
 store_res(List) ->
     gen_server:call(?SERVER,{storeres, List},infinity).
-	
+
 %Function to get results stored in DB for a searched subject, takes a a searchterm in the form: <<"searchterm">>
 get_res(Word) ->
     gen_server:call(?SERVER,{getres, Word},infinity).
-	
+
 %Function to get score for a word stored in wordlist DB for a searched subject
 get_wordscore(Word) ->
     gen_server:call(?SERVER,{wordscore, Word},infinity).
-	
-	
+
+
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
@@ -50,10 +50,10 @@ init([]) ->
     S = couchbeam:server_connection(Url, Options),  % connect to the server
     %%{ok, Db}=couchbeam:open_db(S, "results", Options), % opening the "results" database,
 	%%{ok, [Db]}. %%Store the connection to Db in State variable
-    
+
 	{ok, [S]}. %%Store the connection to CouchDb Server in State variable
 
-	
+
 handle_call({wordscore, Word}, From, State) ->
     spawn(fun() -> get_wordscore(Word, From, State) end),
    {noreply, State};
@@ -61,11 +61,11 @@ handle_call({wordscore, Word}, From, State) ->
 handle_call({storeres, List}, From, State) ->
     spawn(fun() -> store_result(List, From, State) end),
    {noreply, State};
-   
+
 handle_call({getres, Word}, From, State) ->
     spawn(fun() -> get_result(Word,From,State) end),
 	{noreply, State}.
-	
+
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -87,7 +87,7 @@ code_change(_OldVsn, State, _Extra) ->
 make_Options(Word) ->
   SearchWord = list_to_binary(Word),
   [{key, SearchWord}].
-  
+
 get_wordscore(Word, From, State) ->
     DesignName = "posneg", %The name for the DesignDocument in wordlist-database specifying the view
     ViewName = "words_key_val", % The actual view
@@ -96,9 +96,9 @@ get_wordscore(Word, From, State) ->
 	{ok, Db}=couchbeam:open_db(S, "wordlist", Options), % opening the "wordlist" database,
 	Options2 = make_Options(Word), %% Make the query key into right format
     {ok,ViewResults} = couchbeam_view:fetch(Db, {DesignName, ViewName},Options2), % returns rows corresponding to Word sent to function
-	
+
 	gen_server:reply(From, ViewResults).
-	
+
 
 
 
@@ -111,10 +111,10 @@ store_result([Year,Month,Day,Neu,Neg,Pos,Subject],From,State) ->
     Options = [],
 	[S]=State, %%Use the connection to Server info which is stored in State
 	{ok, Db}=couchbeam:open_db(S, "results", Options), % opening the "results" database,
-	
+
 	Reply = "Result stored in Db",
 	io:format("Subject searched for that is stored: ~ts~n", [Subject]),
-    	
+
 		Doc = {[{<<"Subject">>, Subject},
                 {<<"Neutral Score">>, Neu},
                 {<<"Negative Score">>, Neg},
@@ -125,21 +125,21 @@ store_result([Year,Month,Day,Neu,Neg,Pos,Subject],From,State) ->
                 ]},
 	couchbeam:save_doc(Db, Doc),
 	gen_server:reply(From, Reply);
-	
+
 store_result([_],From,State) ->
 	Reply = "Request to store in database is in invalid format",
 	gen_server:reply(From, Reply).
-	
 
-get_result([Word],From,State)->
-    
+
+get_result(Word,From,State)->
+
 	DesignName = "getstats", %The name for the DesignDocument in reulst-database specifying the design doc
     ViewName = "stats", % The actual view
 	%%[Db] = State, %%Use the connection to Db info which is stored in State
 	Options = [],
-	
+
 	[S]=State, %%Use the connection to Server info which is stored in State
 	{ok, Db}=couchbeam:open_db(S, "results", Options), % opening the "results" database,
-    
+
 	{ok,ViewResults} = couchbeam_view:fetch(Db, {DesignName, ViewName},[{key, Word}]), % returns rows corresponding to Word sent to function
     gen_server:reply(From, ViewResults).

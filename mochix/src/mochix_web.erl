@@ -87,10 +87,11 @@ get_stats(Req) ->
   % Find the parameters used for the request
   Query           = proplists:get_value("query", QueryStringData),
   BinaryQuery     = list_to_binary([Query]),
+  io:format("getstats BinaryQuery: ~p~n", [BinaryQuery]),
   % Send parameters to another Erlang function that returns data from our DB
   Stats           = resmanager_server:get_res(BinaryQuery),
   % Encode as JSON Values to display on a webpage
-  HTMLoutput      = mochijson2:encode(Stats),
+  HTMLoutput      = mochijson2:encode(hd(Stats)),
   Req:respond({200, [{"Content-Type", "text/plain"}],
               HTMLoutput}).
 
