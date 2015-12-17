@@ -76,12 +76,7 @@ code_change(_OldVsn, State, _Extra) ->
 
 %%Example of message store_result/3 function will receive:
 %%[<<"2015">>,<<"12">>,<<"16">>,<<"soccer">>,<<"60">>,<<"13">>,<<"27">>]
-<<<<<<< HEAD
-
-store_result([Year,Month,Day,Subject,Neu,Neg,Pos],From,State) ->
-=======
 store_result([Year,Month,Day,Neu,Neg,Pos,Subject],From,State) ->
->>>>>>> fc58d176008dadba3adb9fdcfb554957eff8002e
 	[Db]=State,
 	Reply = "Result stored in Db",
 	io:format("Subject searched for that is stored: ~ts~n", [Subject]),
