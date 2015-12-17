@@ -105,7 +105,7 @@ get_wordscore(Word, From, State) ->
 
 
 %%Example of message store_result/3 function will receive:
-%%[<<"2015">>,<<"12">>,<<"16">>,<<"soccer">>,<<"60">>,<<"13">>,<<"27">>]
+%%[<<"2015">>,<<"12">>,<<"16">>,<<"60">>,<<"13">>,<<"27">>,<<"soccer">>]
 store_result([Year,Month,Day,Neu,Neg,Pos,Subject],From,State) ->
     %%[Db] = State, %%Use the connection to Db info which is stored in State
     Options = [],
@@ -131,7 +131,7 @@ store_result([_],From,State) ->
 	gen_server:reply(From, Reply).
 	
 
-get_result(Word,From,State)->
+get_result([Word],From,State)->
     
 	DesignName = "getstats", %The name for the DesignDocument in reulst-database specifying the design doc
     ViewName = "stats", % The actual view
