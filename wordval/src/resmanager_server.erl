@@ -49,7 +49,9 @@ handle_call({storeres, List}, From, State) ->
     spawn(fun() -> store_result(List, From, State) end),
    {noreply, State}.
 
-   
+    spawn(fun() -> get_result(Word,From,State) end),
+	{noreply, State}.
+	
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -67,8 +69,9 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-%%Example of message function will receive:
+%%Example of message store_result/3 function will receive:
 %%[<<"2015">>,<<"12">>,<<"16">>,<<"soccer">>,<<"60">>,<<"13">>,<<"27">>]
+
 store_result([Year,Month,Day,Subject,Neu,Neg,Pos],From,State) ->
 	[Db]=State,
 	Reply = "Result stored in Db",
@@ -88,3 +91,16 @@ store_result([Year,Month,Day,Subject,Neu,Neg,Pos],From,State) ->
 store_result([_],From,State) ->
 	Reply = "Request to store in database is invalid",
 	gen_server:reply(From, Reply).
+	
+%%Helper function to make the Options for couchbeam key query
+ make_Options(Word) ->
+  [{key, Word}].	
+	
+get_result(Word,From,State)->
+DesignName = "getstats", %The name for the DesignDocument in reulst-database specifying the design doc
+    ViewName = "stats", % The actual view
+	[Db] = State, %%Use the connection to Db info which is stored in State
+	Options2 = make_Options(Word), %% Make the query key into right format
+    {ok,ViewResults} = couchbeam_view:fetch(Db, {DesignName, ViewName},Options2), % returns rows corresponding to Word sent to function
+    ViewResults.
+	
