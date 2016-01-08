@@ -120,8 +120,8 @@ app_auth() ->
   % https://apps.twitter.com/
   % This function will encode the values, construct the HTTP request and
   % return a Bearer Token as a list
-  ConsumerKey     = "JNEVsG01mMdYIKq404MMmXw2H",
-  ConsumerSecret  = "aeNjhFV0F02PjNktQEBN2ESGbbzbDlcNeVufBxsKI9B0qFjFhB",
+  ConsumerKey     = "new have been generated",
+  ConsumerSecret  = "new have been generated",
   EncodedConsumerKey    = http_uri:encode(ConsumerKey),
   EncodedConsumerSecret = http_uri:encode(ConsumerSecret),
   ReadyToBase = string:concat(
