@@ -92,13 +92,6 @@ jiffy_decode(A) ->
 		random_tweets(Value1, Data ++ [{N, UserName}] ++ [{N+10, RandomText}], Count-1, N-1).
 %Loops it (loop should be executed only 3 times) and put usernames and tweets in a loop
 
-%format_tweets([],List, 0)     -> List;
-%format_tweets(Data, List, N)  ->
-%  Name = ["n1", "n2", "n3"],
-%  Text = ["t1", "t2", "t3"],
-
-
-
 % Extracts only the fields with "text" from JSON.
 % List and Data is a Binary List
 extract_only_text([], Data, Counter) -> [Counter] ++ Data;

@@ -26,9 +26,6 @@ loop(Req, DocRoot) ->
         case Req:get(method) of
             Method when Method =:= 'GET'; Method =:= 'HEAD' ->
                 case Path of
-                  "hello_world" ->
-                    Req:respond({200, [{"Content-Type", "text/plain"}],
-                    "Hello world!\n"});
                   % Takes all requests to /findtweets and sends them to
                   % a function.
                   % .../findtweets?query=jobs&loc=57.726120,11.942240,10km
@@ -74,6 +71,7 @@ findget(Req) ->
   Location        = proplists:get_value("loc", QueryStringData),
   % Send parameters to another Erlang function that returns twitter data
   Search          = projectx_app:get_tweets(Query, Location),
+  % Format the JSON data
   JSONStruct      = {struct, Search},
   % Encode as JSON Values to display on a webpage
   HTMLoutput      = mochijson2:encode(JSONStruct),
